@@ -11,11 +11,25 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
         <junit5.version>5.9.0</junit5.version>
         <archunit-junit5.version>1.0.0-rc1</archunit-junit5.version>
         <slf4j.version>1.7.5</slf4j.version>
         <surefire.version>2.22.1</surefire.version>
         <assertj.version>3.14.0</assertj.version>
+
+        <jacoco.maven.version>0.8.8</jacoco.maven.version>
+        <coverage.threshold>0.1</coverage.threshold>
+        <coverage.instruction.threshold>${coverage.threshold}</coverage.instruction.threshold>
+        <coverage.class.threshold>${coverage.threshold}</coverage.class.threshold>
+        <coverage.line.threshold>${coverage.threshold}</coverage.line.threshold>
+        <coverage.branch.threshold>${coverage.threshold}</coverage.branch.threshold>
+        <coverage.method.threshold>${coverage.threshold}</coverage.method.threshold>
+
+        <sonar-maven-plugin.version>3.9.1.2184</sonar-maven-plugin.version>
+        <properties-maven-plugin.version>1.1.0</properties-maven-plugin.version>
+<!--        <sonar.host.url>http://localhost:9001</sonar.host.url>-->
+
     </properties>
 
     <dependencies>
@@ -47,11 +61,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>${slf4j.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
@@ -63,9 +79,153 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.version}</version>
+                <configuration>
+                    <!-- Force alphabetical order to have a reproducible build -->
+                    <runOrder>alphabetical</runOrder>
+                    <excludes>
+                        <exclude>**/*IT*</exclude>
+                        <exclude>**/*IntTest*</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+                <configuration>
+                    <!-- Due to spring-boot repackage, without adding this property test classes are not found
+                         See https://github.com/spring-projects/spring-boot/issues/6254 -->
+                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                    <!-- Force alphabetical order to have a reproducible build -->
+                    <runOrder>alphabetical</runOrder>
+                    <includes>
+                        <include>**/*IT*</include>
+                        <include>**/*IntTest*</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>verify</id>
+                        <goals>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.maven.version}</version>
+                <executions>
+                    <execution>
+                        <id>pre-unit-tests</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+
+                    <execution>
+                        <id>post-unit-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+
+                    <execution>
+                        <id>pre-integration-tests</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${basedir}/target/coverage-reports/jacoco-unit.exec</destFile>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>post-integration-tests</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>report-integration</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${basedir}/target/coverage-reports/jacoco-unit.exec</dataFile>
+                        </configuration>
+                    </execution>
+
+                    <!--					<execution>-->
+                    <!--						<id>check</id>-->
+                    <!--						<goals>-->
+                    <!--							<goal>check</goal>-->
+                    <!--						</goals>-->
+                    <!--						<configuration>-->
+                    <!--							<rules>-->
+                    <!--								<rule>-->
+                    <!--									<element>BUNDLE</element>-->
+                    <!--									<limits>-->
+                    <!--										<limit>-->
+                    <!--											<counter>INSTRUCTION</counter>-->
+                    <!--											<value>COVEREDRATIO</value>-->
+                    <!--											<minimum>${coverage.instruction.threshold}</minimum>-->
+                    <!--										</limit>-->
+                    <!--										<limit>-->
+                    <!--											<counter>CLASS</counter>-->
+                    <!--											<value>COVEREDRATIO</value>-->
+                    <!--											<minimum>${coverage.class.threshold}</minimum>-->
+                    <!--										</limit>-->
+                    <!--										<limit>-->
+                    <!--											<counter>LINE</counter>-->
+                    <!--											<value>COVEREDRATIO</value>-->
+                    <!--											<minimum>${coverage.line.threshold}</minimum>-->
+                    <!--										</limit>-->
+                    <!--										<limit>-->
+                    <!--											<counter>BRANCH</counter>-->
+                    <!--											<value>COVEREDRATIO</value>-->
+                    <!--											<minimum>${coverage.branch.threshold}</minimum>-->
+                    <!--										</limit>-->
+                    <!--										<limit>-->
+                    <!--											<counter>METHOD</counter>-->
+                    <!--											<value>COVEREDRATIO</value>-->
+                    <!--											<minimum>${coverage.method.threshold}</minimum>-->
+                    <!--										</limit>-->
+                    <!--									</limits>-->
+                    <!--								</rule>-->
+                    <!--							</rules>-->
+                    <!--						</configuration>-->
+                    <!--					</execution>-->
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>${properties-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>sonar-project.properties</file>
+                            </files>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>

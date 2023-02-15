@@ -15,15 +15,18 @@ public class BidService {
 
     // normally we should have a dao sigleton and subsequent logic for querying the lots from a datasource... but we're gonna skip it for the sake of simplicity.
     private Lot lot;
+
     private BidService(){
         lot = new Lot();
     }
+
     public static synchronized BidService getBidService(){
         if (bidService == null) {
             bidService = new BidService();
         }
         return bidService;
     }
+
     public Lot getLot(){return lot;}
 
     public void initBidders(int biddersNumber){
@@ -31,14 +34,18 @@ public class BidService {
         Arrays.fill(bids,0.0);
         bidService.getLot().setBids(bids);
     }
+
     public void setLot(Lot lot) {this.lot = lot;}
+
     public void setBidAtPosition(int pos, double bid){
 
         this.lot.setBidAtPosition(pos,bid);
     }
+
     public void calculateWinner() {
         calculateWinningBidder();
     }
+
     private void calculateWinningBidder(){
         IntStream.range(0, this.lot.getBids().length)
                 // remove bids below the reserve price
@@ -52,9 +59,11 @@ public class BidService {
                     calculateWinningPrice();
                 });
     }
+
     private void calculateWinningPrice(){
         Arrays.stream(this.lot.getBids())
                 .filter(el-> el <this.lot.getBids()[this.getLot().getWinningBidder()])
                 .max().ifPresent(value->this.lot.setWinPrice(value));
     }
+
 }
